@@ -58,8 +58,8 @@ class Meta(type):
         print('  - Meta.__new__(): call to Meta super() returns %s' % metasuper)
         _q = metasuper.__new__(mcs, name, bases, attrs)
         print('  - Meta.__new__(): returning %s' % _q)
-        non_magic_methods = (m for m in dir(_q) if not m.startswith('__'))
-        print('  - Meta.__new__(): %s has %s attrs' % (_q, {k: getattr(_q, k) for k in non_magic_methods}))
+        cls_attrs = (_q, {k: getattr(_q, k) for k in dir(_q) if not k.startswith(chr(95)*2)})
+        print('  - Meta.__new__(): %s has %s attrs' % cls_attrs)
         return _q
 
     def __init__(cls, name, bases, attrs, **configs):
@@ -98,8 +98,8 @@ class xClass(object, metaclass=Meta, config=1):
     Configuring class creation achieved by sending keyword arguments to it's metaclass.
     # procedure (M-metaclass,C-class) -> M:pni - M:cC:nic
     """
-    a, b = 1, 2
-    def __new__(cls, myarg, altclass=None):
+    A, B = 1, 2
+    def __new__(cls, arg, alternative_instance=None):
         """
         cls.__new__ is used to create instances of cls.
         It's a staticmethod with first argument => cls, where
@@ -119,10 +119,13 @@ class xClass(object, metaclass=Meta, config=1):
         not on a upper level (in a metaclass or parent object) like all the rest of magic methods.
         This is important to understand, because both the class and the metaclass can define this method.
         """
-        _fmt = 'cls=%s, myarg=%s, altclass=%s' % (cls, myarg, altclass)
+        _fmt = 'cls=%s, arg=%s, alternative_instance=%s' % (cls, arg, alternative_instance)
         print('  xClass.__new__(%s)' % _fmt)
 
-        if altclass is not None:
+        if alternative_instance is not None:
+            obj = alternative_instance
+            desc = 'directly, without __init__ invocation'
+        else:
             #  super(), super(__class__, cls), ->  superclass is a wrapper around cls
             #  super().__new__(cls)  ->  <__main__.xClass object at 0xMemAddr>
             #  object.__new__(cls) ->  <__main__.xClass object at 0xMemAddr>
@@ -131,30 +134,27 @@ class xClass(object, metaclass=Meta, config=1):
             print('  - xClass.__new__(): call to super() returns %s' % _super)
             obj = _super.__new__(cls)
             desc = 'to __init__' # internally, isinstance(obj, cls) check is performed
-        else:
-            obj = {'key': 'value', 'self': None}
-            desc = 'directly, without __init__ invocation'
         print('  - xClass.__new__(): dispatching %s %s' % (obj, desc))
         return obj  # Not returning an instance of an xClass? __init__ will be skipped
 
-    def __init__(self, myarg, altclass=None):
+    def __init__(self, arg, alternative_instance=None):
         """
         Received an instance created in __new__
         Remaining arguments *are the same* as were passed to __new__
         """
-        _fmt = 'self=%s, myarg=%s, altclass=%s' % (self, myarg, altclass)
+        _fmt = 'self=%s, arg=%s, alternative_instance=%s' % (self, arg, alternative_instance)
         print('  xClass.__init__(%s)' % _fmt)
-        self.myarg = myarg
-        self.altclass = altclass
+        self.arg = arg
+        self.alternative_instance = alternative_instance
         return super().__init__()
 
     def __str__(self):
-        _fmt = '<an Instance of xClass; myargs=%s, altclass=%s>'
-        _args = getattr(self, 'myarg', 'MISSING'), getattr(self, 'altclass', 'MISSING')
+        _fmt = '<an Instance of xClass; arg=%s, alternative_instance=%s>'
+        _args = getattr(self, 'arg', 'MISSING'), getattr(self, 'alternative_instance', 'MISSING')
         return _fmt % _args
 
-print(xClass('posarg', altclass=dict))
 print(xClass('posarg'))
+print(xClass('posarg', alternative_instance={'key': 'value', 'self': None}))
 print('\ntype(xClass) == Meta: %s, type(xClass): %s' % (type(xClass) == Meta, type(xClass)))
 
 #   Meta.__prepare__(mcs=<class '__main__.Meta'>,
@@ -164,39 +164,39 @@ print('\ntype(xClass) == Meta: %s, type(xClass): %s' % (type(xClass) == Meta, ty
 #   Meta.__new__(mcs=<class '__main__.Meta'>,
 #                name='xClass',
 #                bases=(<class 'object'>,),
-#                attrs=[__doc__,__qualname__, __new__, __str__, __module__, __init__,  a, b, c],
+#                attrs=[__doc__,__qualname__, __new__, __str__, __module__, __init__,  A, B, c],
 #                **{'config': 1})
 #   - Meta.__new__(): call to Meta super() returns <super: <class 'Meta'>, <Meta object>>
 #   - Meta.__new__(): returning <an Instance of a Meta: <class '__main__.xClass'>>
-#   - Meta.__new__(): <an Instance of Meta: <class '__main__.xClass'>> has {'a': 1, 'c': 3, 'b': 2} attrs
+#   - Meta.__new__(): <an Instance of Meta: <class '__main__.xClass'>> has {'A': 1, 'c': 3, 'B': 2} attrs
 #   Meta.__init__(cls=<an Instance of Meta: <class '__main__.xClass'>>,
 #                 name='xClass',
 #                 bases=(<class 'object'>,),
-#                 attrs=[__doc__, __qualname__, __new__, __str__, __module__, __init__, a, b, c],
+#                 attrs=[__doc__, __qualname__, __new__, __str__, __module__, __init__, A, B, c],
 #                 **{'config': 1}))
 #
 # *******************************************************************************************
 #   Meta.__call__(cls=<an Instance of Meta: <class '__main__.xClass'>>,
 #                 args=('posarg',),
-#                 kwargs={'altclass': <class 'dict'>})
+#                 kwargs={'alternative_instance': None})
 #   xClass.__new__(cls=<an Instance of Meta: <class '__main__.xClass'>>,
 #                  myarg=posarg,
-#                  altclass=<class 'dict'>)
+#                  alternative_instance=None)
 #   - xClass.__new__(): call to super() returns <super: <class 'xClass'>, <xClass object>>
-#   - xClass.__new__(): dispatching <an Instance of xClass; myargs=MISSING, altclass=MISSING> to __init__
+#   - xClass.__new__(): dispatching <an Instance of xClass; arg=MISSING, alternative_instance=MISSING> to __init__
 #   xClass.__init__(self=<an Instance of xClass;
-#                   myargs=MISSING, altclass=MISSING>,
-#                   myarg=posarg,
-#                   altclass=<class 'dict'>)
-# >>> <an Instance of xClass; myargs=posarg, altclass=<class 'dict'>>
+#                   arg=MISSING, alternative_instance=MISSING>,
+#                   arg=posarg,
+#                   alternative_instance=None)
+# >>> <an Instance of xClass; arg=posarg, alternative_instance=None>
 
 # *******************************************************************************************
 #   Meta.__call__(cls=<an Instance of a Meta: <class '__main__.xClass'>>,
 #                 args=('posarg',),
 #                 kwargs={})
 #   xClass.__new__(cls=<an Instance of a Meta: <class '__main__.xClass'>>,
-#                  myarg=posarg,
-#                  altclass=None)
+#                  arg=posarg,
+#                  alternative_instance=None)
 #   - xClass.__new__(): call to super() returns <super: <class 'xClass'>, <xClass object>>
 #   - xClass.__new__(): dispatching {'key': 'value', 'self': None} directly, without __init__ invocation
 # >>> {'key': 'value', 'self': None}
