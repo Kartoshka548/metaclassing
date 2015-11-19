@@ -35,21 +35,32 @@ class Meta(type):
         _a = (mcs, name, bases, configs)
         _fmt = 'mcs=%s, name=%r, bases=%s, **%s' % _a
         print('  Meta.__prepare__(%s)' % _fmt)
-        conf = configs.get('config')
+        # any mutating method will have no effect in the long-term (__new__ gets the original *configs*)
+        mixin = configs.get('mixin')  # an inter-method immutable dict (local changes won't persist)
+        if isinstance(mixin, dict):
+        # if not returning a copy, internally (in __new__) class-attrs will update/merge into *configs* dict
+            extra_dict = mixin.copy()  # when returning new dict, original *configs* will stay unbound
+        else:
         # ignoring inheritance: return plain {}, without calling on super()
-        return conf and {'c': 3} or super().__prepare__(name, bases, **configs)
+            extra_dict = super().__prepare__(name, bases, **configs)
+        return extra_dict
 
     def __new__(mcs, name, bases, attrs, **configs):
         """
         Meta.__new__ is used to create <instances of Meta which is a xClass object>
         The __new__ method is THE constructor (produces new, bare instance to be initialized by __init__).
 
-        DO NOT send "**kwargs" to type.__new__
+        DO NOT send *configs* to type.__new__
         It won't catch them and will raise a TypeError: type() takes 1 or 3 arguments" exception.
         """
         _a = (mcs, name, bases, ', '.join(attrs), configs)
         _fmt = 'mcs=%s, name=%r, bases=%s, attrs=[%s], **%s' % _a
         print('  Meta.__new__(%s)' % _fmt)
+
+        # _attrs into actual values with default values per instruction
+        conf_attr_pointer, values = (configs.setdefault('config', {}).get(k) for k in ('attr_list', 'instruction'))
+        if conf_attr_pointer in attrs and values in ('nullify',):
+            attrs.update(dict.fromkeys(attrs.pop(conf_attr_pointer), 0))
 
         # super() is the same as super(__class__, <first argument>),
         # super() ==  super(__class__, mcs)                        -> False
@@ -88,7 +99,8 @@ class Meta(type):
         return '<an Instance of Meta: %s>' % repr(cls)
 
 
-class xClass(object, metaclass=Meta, config=1):
+class xClass(object, config=dict(attr_list='_attrs', instruction='nullify'),
+             metaclass=Meta, mixin=dict(C='Returning actual', D='...and just a plain dict')):
     """
     For magic methods the lookup is always done on the class.
 
@@ -98,7 +110,7 @@ class xClass(object, metaclass=Meta, config=1):
     Configuring class creation achieved by sending keyword arguments to it's metaclass.
     # procedure (M-metaclass,C-class) -> M:pni - M:cC:nic
     """
-    A, B = 1, 2
+    _attrs = ['A', 'B']
     def __new__(cls, arg, alternative_instance=None):
         """
         cls.__new__ is used to create instances of cls.
@@ -153,27 +165,31 @@ class xClass(object, metaclass=Meta, config=1):
         _args = getattr(self, 'arg', 'MISSING'), getattr(self, 'alternative_instance', 'MISSING')
         return _fmt % _args
 
-print(xClass('posarg'))
-print(xClass('posarg', alternative_instance={'key': 'value', 'self': None}))
+print(xClass.C, xClass('posarg'))
+print(xClass.D, xClass('posarg', alternative_instance={'key': 'value', 'self': None}))
 print('\ntype(xClass) == Meta: %s, type(xClass): %s' % (type(xClass) == Meta, type(xClass)))
 
 #   Meta.__prepare__(mcs=<class '__main__.Meta'>,
 #                    name='xClass',
 #                    bases=(<class 'object'>,),
-#                    **{'config': 1})
+#                    **{'config': {
+#                       'attr_list': '_attrs', 'instruction': 'nullify'},
+#                       'mixin': {'D': '...and just a plain dict', 'C': 'Returning actual'}})
 #   Meta.__new__(mcs=<class '__main__.Meta'>,
 #                name='xClass',
 #                bases=(<class 'object'>,),
-#                attrs=[__doc__,__qualname__, __new__, __str__, __module__, __init__,  A, B, c],
-#                **{'config': 1})
+#                attrs=[C, __init__, __str__, __qualname__, __module__, __doc__, _attrs, __new__],
+#                **{'config': {'attr_list': '_attrs', 'instruction': 'nullify'},
+#                              'mixin': {'D': '...and just a plain dict', 'C': 'Returning actual'}})
 #   - Meta.__new__(): call to Meta super() returns <super: <class 'Meta'>, <Meta object>>
 #   - Meta.__new__(): returning <an Instance of a Meta: <class '__main__.xClass'>>
-#   - Meta.__new__(): <an Instance of Meta: <class '__main__.xClass'>> has {'A': 1, 'c': 3, 'B': 2} attrs
+#   - Meta.__new__(): <an Instance of Meta: <class '__main__.xClass'>> has {'C': 'STR_VAL', 'A': 0, 'B': 0} attrs
 #   Meta.__init__(cls=<an Instance of Meta: <class '__main__.xClass'>>,
 #                 name='xClass',
 #                 bases=(<class 'object'>,),
-#                 attrs=[__doc__, __qualname__, __new__, __str__, __module__, __init__, A, B, c],
-#                 **{'config': 1}))
+#                 attrs=[C, __init__, B, __str__, __qualname__, __module__, __doc__, A, __new__],
+#                 **{'config': {'attr_list': '_attrs', 'instruction': 'nullify'},
+#                               'mixin': {'D': '...and just a plain dict', 'C': 'Returning actual'}}))
 #
 # *******************************************************************************************
 #   Meta.__call__(cls=<an Instance of Meta: <class '__main__.xClass'>>,
@@ -188,7 +204,7 @@ print('\ntype(xClass) == Meta: %s, type(xClass): %s' % (type(xClass) == Meta, ty
 #                   arg=MISSING, alternative_instance=MISSING>,
 #                   arg=posarg,
 #                   alternative_instance=None)
-# >>> <an Instance of xClass; arg=posarg, alternative_instance=None>
+# >>> Returning <an Instance of xClass; arg=posarg, alternative_instance=None>
 
 # *******************************************************************************************
 #   Meta.__call__(cls=<an Instance of a Meta: <class '__main__.xClass'>>,
