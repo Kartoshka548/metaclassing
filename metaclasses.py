@@ -35,8 +35,8 @@ class Meta(type):
         _a = (mcs, name, bases, configs)
         _fmt = 'mcs=%s, name=%r, bases=%s, **%s' % _a
         print('  Meta.__prepare__(%s)' % _fmt)
-        # any mutating method will have no effect in the long-term (__new__ gets the original *configs*)
-        mixin = configs.get('mixin')  # an inter-method immutable dict (local changes won't persist)
+        # in the long-term, mutating methods will have no effect  (__new__ gets the original *configs*)
+        mixin = configs.get('mixin')  # [an inter-method immutable dict] - changes won't persist across calls
         if isinstance(mixin, dict):
         # if not returning a copy, internally (in __new__) class-attrs will update/merge into *configs* dict
             extra_dict = mixin.copy()  # when returning new dict, original *configs* will stay unbound
@@ -49,6 +49,7 @@ class Meta(type):
         """
         Meta.__new__ is used to create <instances of Meta which is a xClass object>
         The __new__ method is THE constructor (produces new, bare instance to be initialized by __init__).
+        param: attrs is a merged (class-attrs + what __prepare__ returned) object
 
         DO NOT send *configs* to type.__new__
         It won't catch them and will raise a TypeError: type() takes 1 or 3 arguments" exception.
@@ -97,6 +98,28 @@ class Meta(type):
 
     def __str__(cls):
         return '<an Instance of Meta: %s>' % repr(cls)
+
+
+def outer_decorator(*outer_args, **outer_kwargs):
+    """
+    Decorator that take arguments
+    usage: xClass = outer_decorator(1, 2, 3)(xClass)
+
+    Also, equivalent to: (args are not dynamic)
+    def decorator(func):
+        def decorated(*args, **kwargs):
+            #do_something(1, 2, 3)
+            return func(*args, **kwargs)
+        return decorated
+    xClass = decorator(xClass)
+    """
+    def decorator(func):
+        def decorated(*args, **kwargs):
+            #do_something(*outer_args, **outer_kwargs)
+            return func(*args, **kwargs)
+        return decorated
+    return decorator
+
 
 
 class xClass(object, config=dict(attr_list='_attrs', instruction='nullify'),
@@ -161,8 +184,9 @@ class xClass(object, config=dict(attr_list='_attrs', instruction='nullify'),
         return super().__init__()
 
     def __str__(self):
-        _fmt = '<an Instance of xClass; arg=%s, alternative_instance=%s>'
-        _args = getattr(self, 'arg', 'MISSING'), getattr(self, 'alternative_instance', 'MISSING')
+        _fmt = '<an Instance of xClass; arg=%s, alternative_instance=%s, attrs=[%s]>'
+        attrs = ', '.join(map(str, (getattr(self, a, 'MISSING') for a in ('A', 'B', 'C', 'D'))))
+        _args = getattr(self, 'arg', 'MISSING'), getattr(self, 'alternative_instance', 'MISSING'), attrs
         return _fmt % _args
 
 print(xClass.C, xClass('posarg'))
@@ -204,7 +228,10 @@ print('\ntype(xClass) == Meta: %s, type(xClass): %s' % (type(xClass) == Meta, ty
 #                   arg=MISSING, alternative_instance=MISSING>,
 #                   arg=posarg,
 #                   alternative_instance=None)
-# >>> Returning <an Instance of xClass; arg=posarg, alternative_instance=None>
+# >>> Returning <an Instance of xClass;
+#                       arg=posarg,
+#                       alternative_instance=None,
+#                       attrs=[0, 0, Returning actual, ...and just a plain dict]>
 
 # *******************************************************************************************
 #   Meta.__call__(cls=<an Instance of a Meta: <class '__main__.xClass'>>,
@@ -215,6 +242,6 @@ print('\ntype(xClass) == Meta: %s, type(xClass): %s' % (type(xClass) == Meta, ty
 #                  alternative_instance=None)
 #   - xClass.__new__(): call to super() returns <super: <class 'xClass'>, <xClass object>>
 #   - xClass.__new__(): dispatching {'key': 'value', 'self': None} directly, without __init__ invocation
-# >>> {'key': 'value', 'self': None}
+# >>> ...and just a plain dict {'key': 'value', 'self': None}
 #
 # type(xClass) == Meta: True, type(xClass): <class '__main__.Meta'>
