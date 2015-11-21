@@ -125,7 +125,7 @@ def outer_decorator(*outer_args, **outer_kwargs):
 
 
 class xClass(object, config=dict(attr_list='_attrs', instruction='nullify'),
-             metaclass=Meta, mixin=dict(C='*** Returning', D='plain dict')):
+             metaclass=Meta, mixin=dict(returning='*** Returning', plaindict='plain dict')):
     """
     For magic methods the lookup is always done on the class.
 
@@ -195,8 +195,12 @@ class xClass(object, config=dict(attr_list='_attrs', instruction='nullify'),
             arg=%s, alternative_instance=%s,
             **instance-attributes=%s>""" % _args
 
-print(xClass.C, xClass('posarg'))
-print(xClass.C, xClass.D, xClass('posarg', alternative_instance={'key': 'value', 'self': None}))
+_obj = xClass('posarg')
+print(_obj.returning, _obj)
+
+_altered_obj = xClass('posarg', alternative_instance={'key': 'value', 'self': None})
+print(xClass.returning, xClass.plaindict, _altered_obj)
+
 print('\ntype(xClass) == Meta: %s, type(xClass): %s' % (type(xClass) == Meta, type(xClass)))
 
 #   Meta.__prepare__(mcs=<class '__main__.Meta'>,
