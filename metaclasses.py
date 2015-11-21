@@ -199,46 +199,46 @@ print(xClass.C, xClass('posarg'))
 print(xClass.C, xClass.D, xClass('posarg', alternative_instance={'key': 'value', 'self': None}))
 print('\ntype(xClass) == Meta: %s, type(xClass): %s' % (type(xClass) == Meta, type(xClass)))
 
-#   Meta.__prepare__(	mcs=<class '__main__.Meta'>,
-#                    	name='xClass', bases=(<class 'object'>,),
-#                    	**{'config': {'attr_list': '_attrs', 'instruction': 'nullify'}, 'mixin': {'C': '*** Returning', 'D': 'plain dict'}})
-#   Meta.__new__(		mcs=<class '__main__.Meta'>,
-#                     name='xClass', bases=(<class 'object'>,),
-#                     attrs=[__str__, __new__, __init__, C, D, __doc__, __qualname__, __module__, _attrs],
-#                     **{'config': {'attr_list': '_attrs', 'instruction': 'nullify'}, 'mixin': {'C': '*** Returning', 'D': 'plain dict'}})
+#   Meta.__prepare__(mcs=<class '__main__.Meta'>,
+#                    name='xClass', bases=(<class 'object'>,),
+#                    **{'config': {'attr_list': '_attrs', 'instruction': 'nullify'}, 'mixin': {'C': '*** Returning', 'D': 'plain dict'}})
+#   Meta.__new__(    mcs=<class '__main__.Meta'>,
+#                    name='xClass', bases=(<class 'object'>,),
+#                    attrs=[__str__, __new__, __init__, C, D, __doc__, __qualname__, __module__, _attrs],
+#                    **{'config': {'attr_list': '_attrs', 'instruction': 'nullify'}, 'mixin': {'C': '*** Returning', 'D': 'plain dict'}})
 #   --- call to [mcs:Meta]'s super() returns <super: <class 'Meta'>, <Meta object>>
 #   --- returns <an Instance of Meta: <class '__main__.xClass'>,
-#                         **class-attributes={'B': 0, 'A': 0, 'C': '*** Returning', 'D': 'plain dict'}>
-#   Meta.__init__(	cls=<an Instance of Meta: <class '__main__.xClass'>,
-#                         **class-attributes={'B': 0, 'A': 0, 'C': '*** Returning', 'D': 'plain dict'}>,
-#                     name='xClass', bases=(<class 'object'>,),
-#                     attrs=[__str__, __new__, __init__, C, D, __doc__, A, __qualname__, __module__, B],
-#                     **{'config': {'attr_list': '_attrs', 'instruction': 'nullify'}, 'mixin': {'C': '*** Returning', 'D': 'plain dict'}})
+#                       **class-attributes={'B': 0, 'A': 0, 'C': '*** Returning', 'D': 'plain dict'}>
+#   Meta.__init__(   cls=<an Instance of Meta: <class '__main__.xClass'>,
+#                       **class-attributes={'B': 0, 'A': 0, 'C': '*** Returning', 'D': 'plain dict'}>,
+#                    name='xClass', bases=(<class 'object'>,),
+#                    attrs=[__str__, __new__, __init__, C, D, __doc__, A, __qualname__, __module__, B],
+#                    **{'config': {'attr_list': '_attrs', 'instruction': 'nullify'}, 'mixin': {'C': '*** Returning', 'D': 'plain dict'}})
 # __________________________________________________________________________________________class_instantiation____
-#   Meta.__call__(	cls=<an Instance of Meta: <class '__main__.xClass'>,
-#                         **class-attributes={'B': 0, 'A': 0, 'C': '*** Returning', 'D': 'plain dict'}>,
-#                     args=('posarg',), kwargs={}
-#   xClass.__new__(	cls=<an Instance of Meta: <class '__main__.xClass'>,
-#                         **class-attributes={'B': 0, 'A': 0, 'C': '*** Returning', 'D': 'plain dict'}>,
-#                     arg=posarg, alternative_instance=None)
+#   Meta.__call__(   cls=<an Instance of Meta: <class '__main__.xClass'>,
+#                        **class-attributes={'B': 0, 'A': 0, 'C': '*** Returning', 'D': 'plain dict'}>,
+#                    args=('posarg',), kwargs={}
+#   xClass.__new__(  cls=<an Instance of Meta: <class '__main__.xClass'>,
+#                        **class-attributes={'B': 0, 'A': 0, 'C': '*** Returning', 'D': 'plain dict'}>,
+#                    arg=posarg, alternative_instance=None)
 #   --- call to super() returns <super: <class 'xClass'>, <xClass object>>
 #   --- dispatching <an Instance of xClass:
 #             arg=MISSING, alternative_instance=MISSING,
 #             **instance-attributes={'B': 0, 'A': 0, 'C': '*** Returning', 'D': 'plain dict'}> to __init__
-#   xClass.__init__(	self=<an Instance of xClass:
+#   xClass.__init__( self=<an Instance of xClass:
 #             arg=MISSING, alternative_instance=MISSING,
 #             **instance-attributes={'B': 0, 'A': 0, 'C': '*** Returning', 'D': 'plain dict'}>,
-#                     arg=posarg, alternative_instance=None)
+#                    arg=posarg, alternative_instance=None)
 # *** Returning <an Instance of xClass:
 #             arg=posarg, alternative_instance=None,
 #             **instance-attributes={'C': '*** Returning', 'D': 'plain dict', 'A': 0, 'B': 0, 'arg': 'posarg', 'alternative_instance': None}>
 # __________________________________________________________________________________________class_instantiation____
-#   Meta.__call__(	cls=<an Instance of Meta: <class '__main__.xClass'>,
-#                         **class-attributes={'B': 0, 'A': 0, 'C': '*** Returning', 'D': 'plain dict'}>,
-#                     args=('posarg',), kwargs={'alternative_instance': {'self': None, 'key': 'value'}}
-#   xClass.__new__(	cls=<an Instance of Meta: <class '__main__.xClass'>,
-#                         **class-attributes={'B': 0, 'A': 0, 'C': '*** Returning', 'D': 'plain dict'}>,
-#                     arg=posarg, alternative_instance={'self': None, 'key': 'value'})
+#   Meta.__call__(   cls=<an Instance of Meta: <class '__main__.xClass'>,
+#                        **class-attributes={'B': 0, 'A': 0, 'C': '*** Returning', 'D': 'plain dict'}>,
+#                    args=('posarg',), kwargs={'alternative_instance': {'self': None, 'key': 'value'}}
+#   xClass.__new__(  cls=<an Instance of Meta: <class '__main__.xClass'>,
+#                        **class-attributes={'B': 0, 'A': 0, 'C': '*** Returning', 'D': 'plain dict'}>,
+#                    arg=posarg, alternative_instance={'self': None, 'key': 'value'})
 #   --- dispatching {'self': None, 'key': 'value'} directly, without __init__ invocation
 # *** Returning plain dict {'self': None, 'key': 'value'}
 #
