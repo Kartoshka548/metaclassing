@@ -4,11 +4,8 @@ Print statements are included at the end of the script.
 Should be run with Python3. Tested with 3.5
 
 References:
-	* - David Beazley: Python 3 Metaprogramming
-	(https://www.youtube.com/watch?v=sPiWg5jSoZI)
+	* [David Beazley: Python 3 Metaprogramming](https://www.youtube.com/watch?v=sPiWg5jSoZI)
 
-	* -- Graham Dumpleton: Advanced methods for creating decorators
-	(https://www.youtube.com/watch?v=W7Rv-km3ZuA)
+	* [Graham Dumpleton: Advanced methods for creating decorators](https://www.youtube.com/watch?v=W7Rv-km3ZuA)
 
-	* - Bret Victor: The Future of Programming
-	(https://www.youtube.com/watch?v=8pTEmbeENF4)
+	* [Bret Victor: The Future of Programming](https://www.youtube.com/watch?v=8pTEmbeENF4)
