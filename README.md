@@ -1,7 +1,11 @@
-##Example of a class creation with a metaclass and a decorator.
+##Class creation with a metaclass and a decorator.
 
 Print statements are included at the end of the script.
 Should be run with Python3. Tested with 3.5
+
+Quick reference (with M=metaclass and C=class): 
+- xClass Class creation procedure: M:pni
+- xClass Instance creation procedure: M:cC:nic
 
 References:
 * [David Beazley: Python 3 Metaprogramming](https://www.youtube.com/watch?v=sPiWg5jSoZI)

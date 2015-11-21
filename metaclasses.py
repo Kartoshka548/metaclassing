@@ -1,6 +1,3 @@
-import inspect
-
-
 class Meta(type):
     """
     By convention, when defining metaclasses cls is used rather than self
@@ -40,20 +37,20 @@ class Meta(type):
                    \tname=%r, bases=%s,
                    \t**%s)""" % _a)
         # in the long-term, mutating methods will have no effect  (__new__ gets the original *configs*)
-        mixin = configs.get('mixin')  # [an inter-method immutable dict] - changes won't persist across calls
+        mixin = configs.get('mixin')  # [it's an inter-method immutable] - changes won't persist across calls
         if isinstance(mixin, dict):
-        # if not returning a copy, internally (in __new__) class-attrs will update/merge into *configs* dict
-            extra_dict = mixin.copy()  # when returning new dict, original *configs* will stay unbound
+            # if returning a tag: cls attrs will update/merge into it implicitly (see __new__'s doc)
+            extra_dict = mixin.copy()  # but when returning a new object, original will stay clear
         else:
-        # ignoring inheritance: return plain {}, without calling on super()
+            # ignoring inheritance: return {}, without calling on super()
             extra_dict = super().__prepare__(name, bases, **configs)
         return extra_dict
 
     def __new__(mcs, name, bases, attrs, **configs):
         """
-        Meta.__new__ is used to create <instances of Meta which is a xClass object>
-        The __new__ method is THE constructor (produces new, bare instance to be initialized by __init__).
-        param: attrs is a merged (class-attrs + what __prepare__ returned) object
+        metaclass.__new__ is used to create <instances of a metaclass which is a cls object>
+        The __new__ method is THE constructor, producing new, bare instance to be initialized by __init__.
+        param: attrs is a merged (class-attrs + what __prepare__ returned) dict object
 
         DO NOT send *configs* to type.__new__
         It won't catch them and will raise a TypeError: type() takes 1 or 3 arguments" exception.
@@ -63,7 +60,7 @@ class Meta(type):
                     name=%r, bases=%s,
                     attrs=[%s],
                     **%s)""" % _a)
-        # _attrs into actual values with default values per instruction
+        # Per instructions for cls creation, apply _attrs into actual cls attributes w/default values
         conf_attr_pointer, values = (configs.setdefault('config', {}).get(k) for k in ('attr_list', 'instruction'))
         if conf_attr_pointer in attrs and values in ('nullify',):
             attrs.update(dict.fromkeys(attrs.pop(conf_attr_pointer), 0))
@@ -109,7 +106,7 @@ class Meta(type):
 def outer_decorator(*outer_args, **outer_kwargs):
     """
     Decorator that take arguments
-    usage: xClass = outer_decorator(1, 2, 3)(xClass)
+    usage: cls = outer_decorator(1, 2, 3)(cls)
 
     Also, equivalent to: (args are not dynamic)
     def decorator(func):
@@ -117,7 +114,7 @@ def outer_decorator(*outer_args, **outer_kwargs):
             #do_something(1, 2, 3)
             return func(*args, **kwargs)
         return decorated
-    xClass = decorator(xClass)
+    cls = decorator(cls)
     """
     def decorator(func):
         def decorated(*args, **kwargs):
@@ -125,7 +122,6 @@ def outer_decorator(*outer_args, **outer_kwargs):
             return func(*args, **kwargs)
         return decorated
     return decorator
-
 
 
 class xClass(object, config=dict(attr_list='_attrs', instruction='nullify'),
@@ -137,7 +133,7 @@ class xClass(object, config=dict(attr_list='_attrs', instruction='nullify'),
     MyClass = MyMetaClass(name, bases, **kwargs) - it's a MyMetaClass instance.
 
     Configuring class creation achieved by sending keyword arguments to it's metaclass.
-    # procedure (M-metaclass,C-class) -> M:pni - M:cC:nic
+    > Take elements in _attrs and make them class attributes with value 0
     """
     _attrs = ['A', 'B']
     def __new__(cls, arg, alternative_instance=None):
@@ -146,9 +142,9 @@ class xClass(object, config=dict(attr_list='_attrs', instruction='nullify'),
         It's a staticmethod with first argument => cls, where
         return value of __new__() will a new Instance (usually an instance of cls).
 
-        Create a new instance of the class by invoking the superclass’s __new__() method
-        using super(currentclass, cls).__new__(cls [, ...]), which is the same as super(cls, cls).__new__(cls)
-        #>> <__main__.xClass object at 0xMemAddr>, and then modify newly created class (instance of Meta) if needed.
+        Create a new _instance_ of the class by invoking the superclass’s __new__() method
+        using super(current_class, cls).__new__(cls [, ...]), which is the same as super(cls, cls).__new__(cls)
+        #>> <__main__.cls object at 0xMemAddr>, and then modify newly created class (instance of Meta) if needed.
 
         IMPORTANT: If __new__() DOES NOT RETURN AN_INSTANCE_OF_cls ->  __init__ WILL NOT BE INVOKED.
         (because, newly created object may not have an __init__ method defined)
@@ -192,13 +188,12 @@ class xClass(object, config=dict(attr_list='_attrs', instruction='nullify'),
         return super().__init__()
 
     def __str__(self):
-        _fmt = """<an Instance of xClass:
-            arg=%s, alternative_instance=%s,
-            **instance-attributes=%s>"""
-        attrs = dict((k, v) for k, v in inspect.getmembers(self) if not k.startswith(chr(95)*2))
+        # dir(self) and getattr(self, key) alternative is inspect.getmembers(self)
+        attrs = dict((k, getattr(self, k)) for k in dir(self) if not k.startswith(chr(95)*2))
         _args = getattr(self, 'arg', 'MISSING'), getattr(self, 'alternative_instance', 'MISSING'), attrs
-        return _fmt % _args
-
+        return """<an Instance of xClass:
+            arg=%s, alternative_instance=%s,
+            **instance-attributes=%s>""" % _args
 
 print(xClass.C, xClass('posarg'))
 print(xClass.C, xClass.D, xClass('posarg', alternative_instance={'key': 'value', 'self': None}))
