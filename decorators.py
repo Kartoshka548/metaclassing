@@ -102,3 +102,35 @@ print('%s' % _obj)
 
 _altered_obj = xClass('posarg', alternative_instance={'key': 'value', 'self': None})
 print('%s' % _altered_obj)
+
+
+
+#   Decorator_accepting_params(
+#             *outer_args=('dec_posarg',), **outer_kwargs={'dec_config': {'logging': 'DEBUG'}}
+#   -- decorator_accepting_wrapped_object(
+#             func=<class '__main__.xClass'>
+# __________________________________________________________________________________________
+#   -- decorator_object_wrapper(
+#             *outer_args=('dec_posarg',), **outer_kwargs={'dec_config': {'logging': 'DEBUG'}},
+#             *args=('posarg',), **kwargs={}
+#   xClass.__new__(	cls=<class '__main__.xClass'>,
+#                     arg=posarg, alternative_instance=None)
+#   --- call to super() returns <super: <class 'xClass'>, <xClass object>>
+#   --- dispatching <an Instance of xClass:
+#             arg=MISSING, alternative_instance=MISSING,
+#             **instance-attributes={'_attrs': ['A', 'B']}> to __init__
+#   xClass.__init__(	self=<an Instance of xClass:
+#             arg=MISSING, alternative_instance=MISSING,
+#             **instance-attributes={'_attrs': ['A', 'B']}>,
+#                     arg=posarg, alternative_instance=None)
+# <an Instance of xClass:
+#             arg=posarg, alternative_instance=None,
+#             **instance-attributes={'_attrs': ['A', 'B'], 'alternative_instance': None, 'arg': 'posarg'}>
+# __________________________________________________________________________________________
+#   -- decorator_object_wrapper(
+#             *outer_args=('dec_posarg',), **outer_kwargs={'dec_config': {'logging': 'DEBUG'}},
+#             *args=('posarg',), **kwargs={'alternative_instance': {'key': 'value', 'self': None}}
+#   xClass.__new__(	cls=<class '__main__.xClass'>,
+#                     arg=posarg, alternative_instance={'key': 'value', 'self': None})
+#   --- dispatching {'key': 'value', 'self': None} directly, without __init__ invocation
+# {'key': 'value', 'self': None}
