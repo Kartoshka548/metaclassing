@@ -32,10 +32,10 @@ class Meta(type):
         Class decorators can not replace the default dictionary but __prepare__ could.
         __prepare__ has no effect when defined in regular classes - it isn't called.
         """
-        _a = (mcs, name, bases, configs)
+        arguments = (mcs, name, bases, configs)
         print("""  Meta.__prepare__(\tmcs=%s,
                    \tname=%r, bases=%s,
-                   \t**%s)""" % _a)
+                   \t**%s)""" % arguments)
         # in the long-term, mutating methods will have no effect  (__new__ gets the original *configs*)
         mixin = configs.get('mixin')  # [it's an inter-method immutable] - changes won't persist across calls
         if isinstance(mixin, dict):
@@ -55,11 +55,11 @@ class Meta(type):
         DO NOT send *configs* to type.__new__
         It won't catch them and will raise a TypeError: type() takes 1 or 3 arguments" exception.
         """
-        _a = (mcs, name, bases, ', '.join(attrs), configs)
+        arguments = (mcs, name, bases, ', '.join(attrs), configs)
         print("""  Meta.__new__(\t\tmcs=%s,
                     name=%r, bases=%s,
                     attrs=[%s],
-                    **%s)""" % _a)
+                    **%s)""" % arguments)
         # Per instructions for cls creation, apply _attrs into actual cls attributes w/default values
         conf_attr_pointer, values = (configs.setdefault('config', {}).get(k) for k in ('attr_list', 'instruction'))
         if conf_attr_pointer in attrs and values in ('nullify',):
@@ -81,11 +81,17 @@ class Meta(type):
         DO NOT forward *configs* to type.__init__
         type won't get'em them but raise TypeError: "type.__init__() takes NO keyword arguments".
         """
-        _a = (cls, name, bases, ', '.join(attrs), configs)
+        # l = locals()
+        # import inspect
+        # arg_spec = inspect.getargspec(Meta.__init__)#inspect.currentframe().f_code.co_name)
+        # _args = arg_spec.args + [arg_spec.keywords]
+        # arguments = [l[a] for a in _args]
+
+        arguments = (cls, name, bases, ', '.join(attrs), configs)
         print("""  Meta.__init__(\tcls=%s,
                     name=%r, bases=%s,
                     attrs=[%s],
-                    **%s)""" % _a)
+                    **%s)""" % arguments)
         return super().__init__(name, bases, attrs)
 
     def __call__(cls, *args, **kwargs):
@@ -101,27 +107,6 @@ class Meta(type):
         cls_attrs = {k: getattr(cls, k) for k in dir(cls) if not k.startswith(chr(95)*2)}
         return '''<an Instance of Meta: %s,
                         **class-attributes=%s>''' % (repr(cls), cls_attrs)
-
-
-def outer_decorator(*outer_args, **outer_kwargs):
-    """
-    Decorator that take arguments
-    usage: cls = outer_decorator(1, 2, 3)(cls)
-
-    Also, equivalent to: (args are not dynamic)
-    def decorator(func):
-        def decorated(*args, **kwargs):
-            #do_something(1, 2, 3)
-            return func(*args, **kwargs)
-        return decorated
-    cls = decorator(cls)
-    """
-    def decorator(func):
-        def decorated(*args, **kwargs):
-            #do_something(*outer_args, **outer_kwargs)
-            return func(*args, **kwargs)
-        return decorated
-    return decorator
 
 
 class xClass(object, config=dict(attr_list='_attrs', instruction='nullify'),
