@@ -81,12 +81,6 @@ class Meta(type):
         DO NOT forward *configs* to type.__init__
         type won't get'em them but raise TypeError: "type.__init__() takes NO keyword arguments".
         """
-        # l = locals()
-        # import inspect
-        # arg_spec = inspect.getargspec(Meta.__init__)#inspect.currentframe().f_code.co_name)
-        # _args = arg_spec.args + [arg_spec.keywords]
-        # arguments = [l[a] for a in _args]
-
         arguments = (cls, name, bases, ', '.join(attrs), configs)
         print("""  Meta.__init__(\tcls=%s,
                     name=%r, bases=%s,
