@@ -40,11 +40,11 @@ def decorator_with_arguments(*conf_args, **conf_kwargs):
             # in case of function: <method-wrapper '__init__' of function object at 0x...>
             original__init__ = obj.__init__
 
-            def init(self, arg, alternative_instance=None):
+            def init(self, *iargs, **ikwargs):
                 print('  %s.__init__ was altered by a decorator!' % self.__class__.__name__)
                 for k, v in mixin.items():
                     setattr(self, k, types.MethodType(v, self))
-                original__init__(self, arg, alternative_instance)
+                original__init__(self, *iargs, **ikwargs)
 
             # substituting original __init__ call.
             # Not executed but *referenced* for use in call below (not applicable for functions)
