@@ -126,6 +126,7 @@ class xClass(object):
             arg=%s, alternative_instance=%s,
             **instance-attributes=%s>""" % _args
 
+
 _obj = xClass('posarg_A')
 print('%s\n%s' % (_obj, _obj.meth()))
 
