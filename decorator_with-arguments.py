@@ -65,8 +65,9 @@ def decorator_with_arguments(*conf_args, **conf_kwargs):
 ####### FLIGHT
 ############################################################################################
 print(chr(96)*90)
-@decorator_with_arguments(
-    'print__class_name', mixin={'meth': lambda self: '!s% morf dlrow olleH '[::-1] % self.__class__.__name__})
+
+@decorator_with_arguments('print__class_name',
+    mixin={'meth': lambda self: '!s% morf dlrow olleH '[::-1] % self.__class__.__name__})
 class xClass(object):
     def __new__(cls, arg, alternative_instance=None):
         """
@@ -88,7 +89,8 @@ class xClass(object):
         not on a upper level (in a metaclass or parent object) like all the rest of magic methods.
         This is important to understand, because both the class and the metaclass can define this method.
         """
-        _fmt = """\n            cls=%s,
+        _fmt = """
+            cls=%s,
             arg=%s, alternative_instance=%s""" % (cls, arg, alternative_instance)
         print('  xClass.__new__(%s)' % _fmt)
 
@@ -108,7 +110,8 @@ class xClass(object):
         Received an instance created in __new__
         Remaining arguments *are the same* as were passed to __new__
         """
-        _fmt = """\n            self=%s,
+        _fmt = """
+            self=%s,
             arg=%s, alternative_instance=%s""" % (self, arg, alternative_instance)
         print('  xClass.__init__(%s)' % _fmt)
         self.arg = arg
