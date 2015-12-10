@@ -1,6 +1,6 @@
 import types
 
-def decorator_with_arguments(*conf_args, **conf_kwargs):
+def decorator(*conf_args, **conf_kwargs):
     """
     Complete decorator logic, when instantiating decorated object 'obj' with
         obj(*args, **kwargs), translates into:
@@ -10,10 +10,9 @@ def decorator_with_arguments(*conf_args, **conf_kwargs):
     not on instantiation or at a runtime. It remembers (*conf_args, **conf_kwargs) arguments
     used to configure object behaviour, and returns next layer of decoration (actual 'obj' decoration).
     """
-    print("""  decorator_with_arguments(
-            *conf_args=%s, **conf_kwargs=%s""" % (conf_args, conf_kwargs))
+    print("""  decorator(*conf_args=%s, **conf_kwargs=%s""" % (conf_args, conf_kwargs))
 
-    def decorator_wrapper(obj):
+    def decorator_(obj):
         """
         Wrapping used if a decorator would not accept any arguments.
         @decorator(obj) translates into decorator(obj)
@@ -22,16 +21,16 @@ def decorator_with_arguments(*conf_args, **conf_kwargs):
         not on instantiation or at a runtime. It remembers obj to execute and returns
         next (final) layer of wrapping which will be called each time object is executed.
         """
-        print("""  -- decorator_accepting_wrapped_object(
+        print("""  -- decorator.decorator_(
             obj=%s""" % obj)
-        def decorator(*args, **kwargs):
+        def wrapper(*args, **kwargs):
             """
             A wrapper around actual object, called at at EVERY execution.
 
             It has access to previously stored conf_args, conf_kwargs and obj,
             which are typically used here.
             """
-            print(chr(95)*90, """\n  -- decorator(
+            print(chr(95)*90, """\n  decorator.decorator_.wrapper(
             *conf_args=%s, **conf_kwargs=%s,
             *args=%s, **kwargs=%s""" % (conf_args, conf_kwargs, args, kwargs))
 
@@ -41,7 +40,7 @@ def decorator_with_arguments(*conf_args, **conf_kwargs):
             original__init__ = obj.__init__
 
             def init(self, *iargs, **ikwargs):
-                print('  %s.__init__ was altered by a decorator!' % self.__class__.__name__)
+                print('  %s.__init__ WAS ALTERED BY A DECORATOR!' % self.__class__.__name__)
                 for k, v in mixin.items():
                     setattr(self, k, types.MethodType(v, self))
                 original__init__(self, *iargs, **ikwargs)
@@ -56,17 +55,17 @@ def decorator_with_arguments(*conf_args, **conf_kwargs):
 
             if set(conf_args) & {'print__class_name', }:
                 # if order of positional arguments matters, use 'v' in ('v',)
-                print('  decorator: Decorated class is: %s' % normal_call_result.__class__.__name__)
+                print('  decorator.decorator_.wrapper: Decorated object is: %s' % obj.__name__)
 
             return normal_call_result
-        return decorator
-    return decorator_wrapper
+        return wrapper
+    return decorator_
 
 ####### FLIGHT
 ############################################################################################
 print(chr(96)*90)
 
-@decorator_with_arguments('print__class_name',
+@decorator('print__class_name',
     mixin={'meth': lambda self: '!s% morf dlrow olleH '[::-1] % self.__class__.__name__})
 class xClass(object):
     def __new__(cls, arg, alternative_instance=None):
@@ -102,7 +101,7 @@ class xClass(object):
             print('  --- call to super() returns %s' % _super)
             obj = _super.__new__(cls) # needs to be a class not type
             desc = 'to __init__'
-        print('  --- dispatching %s %s' % (obj, desc))
+        print('  -- dispatching %s %s' % (obj, desc))
         return obj
 
     def __init__(self, arg, alternative_instance=None):
@@ -136,62 +135,62 @@ print('%s' % _altered_obj)
 print(chr(96)*90)
 print(chr(96)*90)
 
-@decorator_with_arguments(
-    'print__class_name', None, mixin={'meth': 'obj.__init__ will not be called (it is a function)!'})
+
+@decorator('print__class_name', None,
+           mixin={'meth': 'obj.__init__ will not be called (it is a function)!'})
 def plain_func(a, b='abc'):
     return '%s %s' % (a, b)
+
 
 print(plain_func('Also good for', 'regular functions!'))
 print(chr(96)*90)
 
 
 # ``````````````````````````````````````````````````````````````````````````````````````````
-#   decorator_with_arguments(
-#             *conf_args=('print__class_name',), **conf_kwargs={'mixin': {'meth': <function <lambda> at 0x102097950>}}
-#   -- decorator_accepting_wrapped_object(
+#   decorator(*conf_args=('print__class_name',), **conf_kwargs={'mixin': {'meth': <function <lambda> at 0x101f968c8>}}
+#   -- decorator.decorator_(
 #             obj=<class '__main__.xClass'>
 # __________________________________________________________________________________________
-#   -- decorator(
-#             *conf_args=('print__class_name',), **conf_kwargs={'mixin': {'meth': <function <lambda> at 0x102097950>}},
+#   decorator.decorator_.wrapper(
+#             *conf_args=('print__class_name',), **conf_kwargs={'mixin': {'meth': <function <lambda> at 0x101f968c8>}},
 #             *args=('posarg_A',), **kwargs={}
 #   xClass.__new__(
 #             cls=<class '__main__.xClass'>,
 #             arg=posarg_A, alternative_instance=None)
 #   --- call to super() returns <super: <class 'xClass'>, <xClass object>>
-#   --- dispatching <an Instance of xClass:
+#   -- dispatching <an Instance of xClass:
 #             arg=MISSING, alternative_instance=MISSING,
 #             **instance-attributes={}> to __init__
-#   xClass.__init__ was altered by a decorator!
+#   xClass.__init__ WAS ALTERED BY A DECORATOR!
 #   xClass.__init__(
 #             self=<an Instance of xClass:
 #             arg=MISSING, alternative_instance=MISSING,
-#             **instance-attributes={'meth': <bound method <lambda> of <__main__.xClass object at 0x10360e390>>}>,
+#             **instance-attributes={'meth': <bound method <lambda> of <__main__.xClass object at 0x101fc6390>>}>,
 #             arg=posarg_A, alternative_instance=None)
-#   decorator: Decorated class is: xClass
+#   decorator.decorator_.wrapper: Decorated object is: xClass
 # <an Instance of xClass:
 #             arg=posarg_A, alternative_instance=None,
-#             **instance-attributes={'arg': 'posarg_A', 'meth': <bound method <lambda> of <__main__.xClass object at 0x10360e390>>, 'alternative_instance': None}>
+#             **instance-attributes={'alternative_instance': None, 'meth': <bound method <lambda> of <__main__.xClass object at 0x101fc6390>>, 'arg': 'posarg_A'}>
 #  Hello world from xClass!
 # __________________________________________________________________________________________
-#   -- decorator(
-#             *conf_args=('print__class_name',), **conf_kwargs={'mixin': {'meth': <function <lambda> at 0x102097950>}},
+#   decorator.decorator_.wrapper(
+#             *conf_args=('print__class_name',), **conf_kwargs={'mixin': {'meth': <function <lambda> at 0x101f968c8>}},
 #             *args=('posarg_B',), **kwargs={'alternative_instance': {'key': 'value', 'self': None}}
 #   xClass.__new__(
 #             cls=<class '__main__.xClass'>,
 #             arg=posarg_B, alternative_instance={'key': 'value', 'self': None})
-#   --- dispatching {'key': 'value', 'self': None} directly, without __init__ invocation
-#   decorator: Decorated class is: dict
+#   -- dispatching {'key': 'value', 'self': None} directly, without __init__ invocation
+#   decorator.decorator_.wrapper: Decorated object is: xClass
 # {'key': 'value', 'self': None}
 # ``````````````````````````````````````````````````````````````````````````````````````````
 # ``````````````````````````````````````````````````````````````````````````````````````````
-#   decorator_with_arguments(
-#             *conf_args=('print__class_name', None), **conf_kwargs={'mixin': {'meth': 'obj.__init__ will not be called (it is a function)!'}}
-#   -- decorator_accepting_wrapped_object(
-#             obj=<function plain_func at 0x102097d90>
+#   decorator(*conf_args=('print__class_name', None), **conf_kwargs={'mixin': {'meth': 'obj.__init__ will not be called (it is a function)!'}}
+#   -- decorator.decorator_(
+#             obj=<function plain_func at 0x101f96d08>
 # __________________________________________________________________________________________
-#   -- decorator(
+#   decorator.decorator_.wrapper(
 #             *conf_args=('print__class_name', None), **conf_kwargs={'mixin': {'meth': 'obj.__init__ will not be called (it is a function)!'}},
 #             *args=('Also good for', 'regular functions!'), **kwargs={}
-#   decorator: Decorated class is: str
+#   decorator.decorator_.wrapper: Decorated object is: plain_func
 # Also good for regular functions!
 # ``````````````````````````````````````````````````````````````````````````````````````````
