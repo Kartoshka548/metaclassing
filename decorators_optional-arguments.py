@@ -6,46 +6,56 @@ def decorator(*conf_args, **conf_kwargs):
         2. @decorator(*conf_args, **conf_kwargs), translated into
              -> decorator(*conf_args, **conf_kwargs)(func)(*args, **kwargs)
     """
-    print("""  decorator(*conf_args=%s, **conf_kwargs=%s""" % (conf_args, conf_kwargs))
+    confs = conf_args, conf_kwargs
+    sp = chr(32)*12
+    args_ = chr(32)*2, *confs
+    print('%sdecorator(*conf_args=%s, **conf_kwargs=%s' % args_)
     def decorator_(obj):
         """
         Logging decorator for API methods,
-        Loging in and out params per method called.
+        Logging in and out params per method called.
         """
-        print("""  decorator.decorator_(
-            obj=%s""" % obj)
-
-        nameunset = '__name__', 'unset'
-        obj_name = getattr(obj, *nameunset)
+        print('  decorator.decorator_(obj=%s' % obj)
 
         def wrapper(*args, **kwargs):
-            print(chr(95)*90, """\n  decorator.decorator_.wrapper(
-            *args=%s, **kwargs=%s""" % (args, kwargs))
+            """
+            Each time there's a new instantiation,
+            this wrapper, representing an obj which it holds, is called.
+            """
+            _args = args, kwargs
+            args_ = chr(95)*90, chr(32)*2, *_args
+            print('{}\n{}decorator.decorator_.wrapper(\n{sp}*args={}, **kwargs={})'.format(*args_, sp=sp))
 
             slice_start = (2, 0)[configured]
             slice_obj = slice(slice_start, slice_start+2)
             cfg = ("", "following", "NOT ", "any")[slice_obj] + (len(conf_args) > 0 and conf_args[0] is obj,)
 
-            print("""  -- decorator was %sgiven %s configurations:
-            1. conf_args[0] is obj -> %s,
-            2. *conf_args=%%s, *conf_kwargs==%%s""" % cfg % (conf_args, conf_kwargs))
+            print('  -- decorator was {}given {} configurations:\n{sp}1. conf_args[0] is obj -> {},'
+                  '\n{sp}2. *conf_args={}, *conf_kwargs=={}'.format(*cfg, *confs, sp=sp))
 
-            # if decorator was configured...
+            # if decorator was 'configured'
             dec_config = conf_kwargs.get('dec_config', {})
-            trojan = dec_config.get('alternative')
+            alternative = dec_config.get('alternative')
             alternative_name = dec_config.get('change_name')
 
-            if trojan:
-                # obj.__dict__['_trojan'] = trojan
-                setattr(obj, '_trojan', trojan)
+            if alternative:
+                # trojan planted
+                # __new__ will construct something else than instance of it's cls
+                # __init__ will not be called (as it won't make any sense)
+                setattr(obj, 'change_name', alternative)
+
             elif alternative_name:
                 obj.__name__ = alternative_name
 
             result = obj(*args, **kwargs)
 
-            if trojan:
-                print("""  decorator.decorator_.wrapper(
-            decorator has modified underlying object. It's a mutation.""")
+            # id() or its equivalent is used in the is operator,
+            # "An integer (or long) guaranteed to be unique and constant for this object during its lifetime."
+            # CPython implementation compares the memory address an object resides in.
+            if not result.__class__ is obj:
+                print('{}decorator.decorator_.wrapper(\n{sp}'
+                      'ALARM! It\'s a mutation, object has been compromised!'.format(chr(32)*2, sp=sp))
+
             return result
         return wrapper
 
@@ -71,192 +81,184 @@ def decorator(*conf_args, **conf_kwargs):
 
 
 class xClass(object):
-    """
-    For magic methods the lookup is always done on the class.
 
-    class MyClass(metaclass=MyMetaClass) gets translated into
-    MyClass = MyMetaClass(name, bases, **kwargs) - it's a MyMetaClass instance.
+    _sp = '%s%s' % (chr(10), (chr(32)*8))
 
-    Configuring class creation achieved by sending keyword arguments to it's metaclass.
-    > Take elements in _attrs and make them class attributes with value 0
-    """
-    _attrs = ['A', 'B']
     def __new__(cls, arg, kw_arg=None):
-        """
-        cls.__new__ is used to create instances of cls.
-        It's a staticmethod with first argument => cls, where
-        return value of __new__() will a new Instance (usually an instance of cls).
+        args_ = arg, kw_arg
+        _fmt = chr(32)*2, '{sp}cls={},{sp}arg={}, kw_arg={}'.format(cls, *args_, sp=cls._sp)
+        print('%sxClass.__new__(%s)' % _fmt)
 
-        Create a new _instance_ of the class by invoking the superclass’s __new__() method
-        using super(current_class, cls).__new__(cls [, ...]), which is the same as super(cls, cls).__new__(cls)
-        #>> <__main__.cls object at 0xMemAddr>, and then modify newly created class (instance of Meta) if needed.
-
-        IMPORTANT: If __new__() DOES NOT RETURN AN_INSTANCE_OF_cls ->  __init__ WILL NOT BE INVOKED.
-        (because, newly created object may not have an __init__ method defined)
-
-        MAINLY, __new__ IS INTENDED TO ALLOW IMMUTABLE TYPE (INT, STR, TUPLE) SUBCLASSES TO CUSTOMIZE INSTANCE CREATION.
-        It is also commonly overridden in metaclasses in order to customize class creation.
-
-        When the class defines __new__, it will be looked up on the same object (the class),
-        not on a upper level (in a metaclass or parent object) like all the rest of magic methods.
-        This is important to understand, because both the class and the metaclass can define this method.
-        """
-        _fmt = """
-            cls=%s,
-            arg=%s, kw_arg=%s""" % (cls, arg, kw_arg)
-        print('  xClass.__new__(%s)' % _fmt)
-
-        #  super(), super(__class__, cls), ->  superclass is a wrapper around cls
-        #  super().__new__(cls)  ->  <__main__.xClass object at 0xMemAddr>
-        #  object.__new__(cls) ->  <__main__.xClass object at 0xMemAddr>
-        #  super().__self_class__ == super().__thisclass__ == cls -> True  # wrapped object
-        _super = super()  # -> <super: <class 'xClass'>, <xClass object>>
+        _super = super()
         print('  --- call to super() returns %s' % _super)
 
-        trojan = getattr(cls, '_trojan', None)
-        if trojan:
-            obj = _super.__new__(type(trojan, (object,), {}))
+        # If decorator defined alternative name,
+        # create <a: new empty class named alternative name>
+        # Return either untouched or the one with altered name.
+        change_name = getattr(cls, 'change_name', None)
+        if change_name:
+            # return predefined class with alternative name given
+            str_ = lambda self: '%s (instance of %s)' % (self.__class__.__name__, self.__class__)
+            obj = _super.__new__(type(change_name, (object,), {'__str__': str_}))
             desc = 'directly, without __init__ invocation'
         else:
-            obj = _super.__new__(cls) # needs to be a class not type
-            desc = 'to __init__' # internally, isinstance(obj, cls) is performed before __init__...
+            obj = _super.__new__(cls)
+            desc = 'to __init__'
+
+        # internally, isinstance(obj, cls) is performed before __init__
+        # if __new__ returns other than an instance of a cls, __init__ will be skipped
         print('  --- dispatching %s %s' % (obj, desc))
-        return obj  # ...and if __new__ returned not an instance of a cls, __init__ will be skipped
+        return obj
 
     def __init__(self, arg, kw_arg=None):
-        """
-        Received an instance created in __new__
-        Remaining arguments *are the same* as were passed to __new__
-        """
-        _fmt = """
-            self=%s,
-            arg=%s, kw_arg=%s""" % (self, arg, kw_arg)
-        print("""  xClass.__init__(%s)""" % _fmt)
-        self.arg = arg
-        self.kw_arg = kw_arg
+        args_ = arg, kw_arg
+        _fmt = chr(32)*2, '{sp}self={},{sp}arg={}, kw_arg={}'.format(self, *args_, sp=self._sp)
+        print('%sxClass.__init__(%s)' % _fmt)
+        self.arg, self.kw_arg = args_
         return super().__init__()
 
     def __str__(self):
-        attrs = dict((k, getattr(self, k)) for k in dir(self) if not k.startswith(chr(95)*2))
+        attrs = dict((k, getattr(self, k)) for k in dir(self) if not (k.startswith(chr(95)*2) or k in ('_sp',)))
         _args = self.__class__.__name__, getattr(self, 'arg', 'MISSING'), \
                 getattr(self, 'kw_arg', 'MISSING'), attrs
-        return """<an Instance of xClass, named %s:
-            arg=%s, kw_arg=%s,
-            **instance-attributes=%s>""" % _args
+        return '<an Instance of xClass, named {} with{sp}arg={}, ' \
+               'kw_arg={},{sp}**instance-attributes={}>'.format(*_args, sp=self._sp)
 
 
 #### FLIGHT
 ########################
-change_name = dict(change_name='Hello world!')
+spacer = chr(94)*90
+change_name = dict(change_name="Robert'); DROP TABLE Students; --S0\u042F\u042FY \u2603")
 alternative = dict(alternative='AlternativeClass')
 
-# no args, equal to
-# @decorator
-# ...
-print('w returns %s' % decorator(xClass)('pos_arg'))
+#fp
+UseCase = __import__('collections').namedtuple('uc', 'description obj')
+#OOP
+# from collections import namedtuple
+# class Usecase(namedtuple('uc', ['description', 'obj'])): pass
 
-# empty args, equal to
-# @decorator()
-# ...
-print('x returns %s' % decorator()(xClass)('pos_arg'))
+decorators = (
+    # @decorator - no args
+    # this decorator will return <instance of decorated object>
+    UseCase("decorator(xClass)('pos_arg')",
+        lambda: decorator(xClass)('pos_arg')),
 
-# modifying class name, equal to
-# @decorator(arg1, arg2)
-# ...
-print('y returns %s' % decorator('dec_posarg', dec_config=change_name)(xClass)('pos_arg', 'kw_arg'))
+    # @decorator() - empty args
+    # same as above
+    UseCase("decorator()(xClass)('pos_arg')",
+        lambda: decorator()(xClass)('pos_arg')),
 
-# returning alternative object, equal to
-# @decorator(...)
-# ...class Xclass...
-print('z returns %s' % decorator('dec_posarg', dec_config=alternative)(xClass)('pos_arg', 'kw_arg'))
+    # @decorator(arg1, arg2) - modifying class' name
+    # this decorator will return <instance of original object, named differently>
+    UseCase("decorator('dec_posarg', dec_config=%s"
+                "(xClass)('pos_arg', 'kw_arg')" % str(change_name),
+        lambda: decorator('dec_posarg', dec_config=change_name)(xClass)('pos_arg', 'kw_arg')),
+
+    # @decorator(arg1, arg2) - returning alternative object
+    # this decorator will return <instance of another class>
+    UseCase("decorator('dec_posarg', dec_config=%s)"
+                "(xClass)('pos_arg', 'kw_arg')" % str(alternative),
+        lambda: decorator('dec_posarg', dec_config=alternative)(xClass)('pos_arg', 'kw_arg')))
+
+for desc, dec in decorators:
+    print('%s\n+++ TRYING %s\n' % (spacer, desc))
+    print("+++ RESULT: %s" % dec())
 
 
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# +++ TRYING decorator(xClass)('pos_arg')
+#
 #   decorator(*conf_args=(<class '__main__.xClass'>,), **conf_kwargs={}
-#   decorator.decorator_(
-#             obj=<class '__main__.xClass'>
+#   decorator.decorator_(obj=<class '__main__.xClass'>
 # __________________________________________________________________________________________
 #   decorator.decorator_.wrapper(
-#             *args=('pos_arg',), **kwargs={}
+#             *args=('pos_arg',), **kwargs={})
 #   -- decorator was NOT given any configurations:
 #             1. conf_args[0] is obj -> True,
 #             2. *conf_args=(<class '__main__.xClass'>,), *conf_kwargs=={}
 #   xClass.__new__(
-#             cls=<class '__main__.xClass'>,
-#             arg=pos_arg, kw_arg=None)
+#         cls=<class '__main__.xClass'>,
+#         arg=pos_arg, kw_arg=None)
 #   --- call to super() returns <super: <class 'xClass'>, <xClass object>>
-#   --- dispatching <an Instance of xClass, named xClass:
-#             arg=MISSING, kw_arg=MISSING,
-#             **instance-attributes={'_attrs': ['A', 'B']}> to __init__
+#   --- dispatching <an Instance of xClass, named xClass with
+#         arg=MISSING, kw_arg=MISSING,
+#         **instance-attributes={}> to __init__
 #   xClass.__init__(
-#             self=<an Instance of xClass, named xClass:
-#             arg=MISSING, kw_arg=MISSING,
-#             **instance-attributes={'_attrs': ['A', 'B']}>,
-#             arg=pos_arg, kw_arg=None)
-# w returns <an Instance of xClass, named xClass:
-#             arg=pos_arg, kw_arg=None,
-#             **instance-attributes={'kw_arg': None, 'arg': 'pos_arg', '_attrs': ['A', 'B']}>
+#         self=<an Instance of xClass, named xClass with
+#         arg=MISSING, kw_arg=MISSING,
+#         **instance-attributes={}>,
+#         arg=pos_arg, kw_arg=None)
+# +++ RESULT: <an Instance of xClass, named xClass with
+#         arg=pos_arg, kw_arg=None,
+#         **instance-attributes={'kw_arg': None, 'arg': 'pos_arg'}>
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# +++ TRYING decorator()(xClass)('pos_arg')
+#
 #   decorator(*conf_args=(), **conf_kwargs={}
-#   decorator.decorator_(
-#             obj=<class '__main__.xClass'>
+#   decorator.decorator_(obj=<class '__main__.xClass'>
 # __________________________________________________________________________________________
 #   decorator.decorator_.wrapper(
-#             *args=('pos_arg',), **kwargs={}
+#             *args=('pos_arg',), **kwargs={})
 #   -- decorator was given following configurations:
 #             1. conf_args[0] is obj -> False,
 #             2. *conf_args=(), *conf_kwargs=={}
 #   xClass.__new__(
-#             cls=<class '__main__.xClass'>,
-#             arg=pos_arg, kw_arg=None)
+#         cls=<class '__main__.xClass'>,
+#         arg=pos_arg, kw_arg=None)
 #   --- call to super() returns <super: <class 'xClass'>, <xClass object>>
-#   --- dispatching <an Instance of xClass, named xClass:
-#             arg=MISSING, kw_arg=MISSING,
-#             **instance-attributes={'_attrs': ['A', 'B']}> to __init__
+#   --- dispatching <an Instance of xClass, named xClass with
+#         arg=MISSING, kw_arg=MISSING,
+#         **instance-attributes={}> to __init__
 #   xClass.__init__(
-#             self=<an Instance of xClass, named xClass:
-#             arg=MISSING, kw_arg=MISSING,
-#             **instance-attributes={'_attrs': ['A', 'B']}>,
-#             arg=pos_arg, kw_arg=None)
-# x returns <an Instance of xClass, named xClass:
-#             arg=pos_arg, kw_arg=None,
-#             **instance-attributes={'kw_arg': None, 'arg': 'pos_arg', '_attrs': ['A', 'B']}>
-#   decorator(*conf_args=('dec_posarg',), **conf_kwargs={'dec_config': {'change_name': 'Hello world!'}}
-#   decorator.decorator_(
-#             obj=<class '__main__.xClass'>
+#         self=<an Instance of xClass, named xClass with
+#         arg=MISSING, kw_arg=MISSING,
+#         **instance-attributes={}>,
+#         arg=pos_arg, kw_arg=None)
+# +++ RESULT: <an Instance of xClass, named xClass with
+#         arg=pos_arg, kw_arg=None,
+#         **instance-attributes={'kw_arg': None, 'arg': 'pos_arg'}>
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# +++ TRYING decorator('dec_posarg', dec_config={'change_name': "Robert'); DROP TABLE Students; --S0ЯЯY ☃"}(xClass)('pos_arg', 'kw_arg')
+#
+#   decorator(*conf_args=('dec_posarg',), **conf_kwargs={'dec_config': {'change_name': "Robert'); DROP TABLE Students; --S0ЯЯY ☃"}}
+#   decorator.decorator_(obj=<class '__main__.xClass'>
 # __________________________________________________________________________________________
 #   decorator.decorator_.wrapper(
-#             *args=('pos_arg', 'kw_arg'), **kwargs={}
+#             *args=('pos_arg', 'kw_arg'), **kwargs={})
 #   -- decorator was given following configurations:
 #             1. conf_args[0] is obj -> False,
-#             2. *conf_args=('dec_posarg',), *conf_kwargs=={'dec_config': {'change_name': 'Hello world!'}}
+#             2. *conf_args=('dec_posarg',), *conf_kwargs=={'dec_config': {'change_name': "Robert'); DROP TABLE Students; --S0ЯЯY ☃"}}
 #   xClass.__new__(
-#             cls=<class '__main__.xClass'>,
-#             arg=pos_arg, kw_arg=kw_arg)
-#   --- call to super() returns <super: <class 'Hello world!'>, <Hello world! object>>
-#   --- dispatching <an Instance of xClass, named Hello world!:
-#             arg=MISSING, kw_arg=MISSING,
-#             **instance-attributes={'_attrs': ['A', 'B']}> to __init__
+#         cls=<class '__main__.xClass'>,
+#         arg=pos_arg, kw_arg=kw_arg)
+#   --- call to super() returns <super: <class 'Robert'); DROP TABLE Students; --S0ЯЯY ☃'>, <Robert'); DROP TABLE Students; --S0ЯЯY ☃ object>>
+#   --- dispatching <an Instance of xClass, named Robert'); DROP TABLE Students; --S0ЯЯY ☃ with
+#         arg=MISSING, kw_arg=MISSING,
+#         **instance-attributes={}> to __init__
 #   xClass.__init__(
-#             self=<an Instance of xClass, named Hello world!:
-#             arg=MISSING, kw_arg=MISSING,
-#             **instance-attributes={'_attrs': ['A', 'B']}>,
-#             arg=pos_arg, kw_arg=kw_arg)
-# y returns <an Instance of xClass, named Hello world!:
-#             arg=pos_arg, kw_arg=kw_arg,
-#             **instance-attributes={'kw_arg': 'kw_arg', 'arg': 'pos_arg', '_attrs': ['A', 'B']}>
+#         self=<an Instance of xClass, named Robert'); DROP TABLE Students; --S0ЯЯY ☃ with
+#         arg=MISSING, kw_arg=MISSING,
+#         **instance-attributes={}>,
+#         arg=pos_arg, kw_arg=kw_arg)
+# +++ RESULT: <an Instance of xClass, named Robert'); DROP TABLE Students; --S0ЯЯY ☃ with
+#         arg=pos_arg, kw_arg=kw_arg,
+#         **instance-attributes={'kw_arg': 'kw_arg', 'arg': 'pos_arg'}>
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# +++ TRYING decorator('dec_posarg', dec_config={'alternative': 'AlternativeClass'})(xClass)('pos_arg', 'kw_arg')
+#
 #   decorator(*conf_args=('dec_posarg',), **conf_kwargs={'dec_config': {'alternative': 'AlternativeClass'}}
-#   decorator.decorator_(
-#             obj=<class '__main__.xClass'>
+#   decorator.decorator_(obj=<class '__main__.xClass'>
 # __________________________________________________________________________________________
 #   decorator.decorator_.wrapper(
-#             *args=('pos_arg', 'kw_arg'), **kwargs={}
+#             *args=('pos_arg', 'kw_arg'), **kwargs={})
 #   -- decorator was given following configurations:
 #             1. conf_args[0] is obj -> False,
 #             2. *conf_args=('dec_posarg',), *conf_kwargs=={'dec_config': {'alternative': 'AlternativeClass'}}
 #   xClass.__new__(
-#             cls=<class '__main__.xClass'>,
-#             arg=pos_arg, kw_arg=kw_arg)
-#   --- call to super() returns <super: <class 'Hello world!'>, <Hello world! object>>
-#   --- dispatching <__main__.AlternativeClass object at 0x1034d92e8> directly, without __init__ invocation
+#         cls=<class '__main__.xClass'>,
+#         arg=pos_arg, kw_arg=kw_arg)
+#   --- call to super() returns <super: <class 'Robert'); DROP TABLE Students; --S0ЯЯY ☃'>, <Robert'); DROP TABLE Students; --S0ЯЯY ☃ object>>
+#   --- dispatching AlternativeClass (instance of <class '__main__.AlternativeClass'>) directly, without __init__ invocation
 #   decorator.decorator_.wrapper(
-#             decorator has modified underlying object. It's a mutation.
-# z returns <__main__.AlternativeClass object at 0x1034d92e8>
+#             ALARM! It's a mutation, object has been compromised!
+# +++ RESULT: AlternativeClass (instance of <class '__main__.AlternativeClass'>)
