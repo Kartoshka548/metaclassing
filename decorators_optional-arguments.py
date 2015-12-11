@@ -111,6 +111,9 @@ class xClass(object):
         return obj
 
     def __init__(self, arg, kw_arg=None):
+
+        # Declaration below will initialize self. Keep out.
+        # args_ = self.arg, self.kw_arg = arg, kw_arg
         args_ = arg, kw_arg
         _fmt = chr(32)*2, '{sp}self={},{sp}arg={}, kw_arg={}'.format(self, *args_, sp=self._sp)
         print('%sxClass.__init__(%s)' % _fmt)
