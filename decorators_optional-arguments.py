@@ -1,6 +1,3 @@
-from collections import namedtuple
-
-UseCase = namedtuple('uc', 'description obj')  # same as `class UseCase(namedtuple(...)): pass`
 case_spacer, hairline = (chr(c)*90 for c in (94, 95))
 sp_short, sp = chr(32)*2, chr(32)*6
 
@@ -18,11 +15,11 @@ def decorator(*conf_args, **conf_kwargs):
 
     def decorator_(obj):
         """
-        This layer of decoration does gatekeeping only,
+        This layer of decoration is a gatekeeper,
         allowing exposed decorator layer (previous frame) to _optionally_ accept arguments.
         It is executed:
-            - immediately in case of no-args decorator, where obj is implicitly the only argument.
-            - after args processed/memoized within previous layer, and obj is now passed explicitly.
+            - immediately, in case of no-args decorator, where obj is implicitly the only argument.
+            - after args processed/memoized with previous layer, and now an obj is explicitly passed.
         """
         print('%sdecorator.decorator_(obj=%s)' % (sp_short, obj))
 
@@ -35,7 +32,7 @@ def decorator(*conf_args, **conf_kwargs):
 
         def wrapper(*args, **kwargs):
             """
-            Each time there's a new instantiation,
+            Each time there's new instantiation,
             this wrapper, representing an obj which it holds, is called.
             """
             print('{}\n{}decorator.decorator_.wrapper(\n'
@@ -51,7 +48,7 @@ def decorator(*conf_args, **conf_kwargs):
             change_name = dec_config.get('change_name')
 
             # proper OOP inheritance will have the class created at local namespace, not what we want
-            # <class '__main__.decorator.<locals>.decorator_.<locals>.wrapper.<locals>._bj'>
+            # <class '__main__.decorator.<locals>.decorator_.<locals>.wrapper.<locals>.ClassName'>
             if alternative:
                 obj = type(obj.__name__, (obj,), {'alternative_obj': alternative})
             elif change_name:
@@ -67,7 +64,7 @@ def decorator(*conf_args, **conf_kwargs):
             return result
         return wrapper
 
-    if (len(conf_args) == 1          # decorating a function, a class or a method
+    if (len(conf_args) == 1         # decorating a function, a class or a method
         and callable(*conf_args)    # must be top-level callable - @decorator() w/o args will be left out
         and not conf_kwargs):       # must not have anything else accompanying
 
@@ -139,6 +136,15 @@ class xClass(object):
 
 #### FLIGHT
 ########################
+
+# from collections import namedtuple
+# class UseCase(namedtuple(...)): pass
+# UseCase = namedtuple('uc', 'description obj')
+UseCase = type('uc', (object,), {
+    '__init__': lambda self, description, obj:
+        setattr(self, 'description', description) or
+        setattr(self, 'obj', obj)})
+
 conf = {
     'altered_name': {
         'change_name': "Robert'); DROP TABLE Students; --S0\u042F\u042FY \u2603"},
@@ -193,7 +199,7 @@ decorators = (
             **desc_, 'conf': str(conf['different_object'])}),
 
     # this decorator will return <instance of another class>
-    # decorator('dec_posarg', dec_config={'alternative': ...})(xClass)(...)
+    # decorator('dec_posarg', alternative=...)(xClass)(...)
     UseCase(
         obj=lambda: decorator('dec_posarg',
             **conf['direct_drop'])(xClass)('pos_arg', 'kw_arg'),
@@ -203,10 +209,20 @@ decorators = (
             **desc_, 'conf': ', '.join("{!s}={!r}".format(key,val) for (key,val) in conf['direct_drop'].items())}))
 
 
-for uc in decorators:
-    print('%s\n+++ TRYING %s\n' % (case_spacer, uc.description))
-    print("+++ RESULT: %s\n%s" % (uc.obj(), hairline))
+def _launcher() -> None:
+    for uc in decorators:
+        print('%s\n+++ TRYING %s\n' % (case_spacer, uc.description))
+        print("+++ RESULT: %s\n%s" % (uc.obj(), hairline))
 
+
+if __name__ == "__main__":
+    if __import__('sys').version_info.major < 3:
+        exit('Tested with Python 3.5.')
+    try:
+        _launcher()
+    except Exception as exc:
+        __import__('traceback').print_tb(exc.__traceback__)
+        exit('\nSorry, following exception occurred: %s' % exc)
 
 
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
